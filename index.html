@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GDCP Cleaning Monitor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            petronas: '#00A19C',
+            petronasDark: '#007A76',
+            surface: '#F8F9FA'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .view-layer { display: none; }
+    .view-layer.active { display: block; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body class="bg-surface text-gray-800 font-sans antialiased h-screen overflow-y-auto">
+
+  <div id="toast" class="hidden fixed top-16 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300 text-sm whitespace-nowrap">
+    Action Successful
+  </div>
+
+  <!-- ROLE SELECTION SCREEN -->
+  <div id="view-role-select" class="view-layer active h-full flex flex-col items-center justify-center p-6 space-y-6">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-petronas tracking-wide">GDCP</h1>
+      <p class="text-gray-500 text-sm uppercase tracking-widest mt-1">Cleaning Services Monitor</p>
+    </div>
+    
+    <button onclick="launchApp('supervisor')" class="w-full max-w-sm bg-white border border-gray-200 shadow-sm rounded-xl p-6 flex flex-col items-center gap-3 active:bg-gray-50 transition-colors">
+      <div class="p-3 bg-teal-50 rounded-full text-petronas">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+      </div>
+      <div class="text-center">
+        <h2 class="text-lg font-bold text-gray-800">Granversal Supervisor</h2>
+        <p class="text-xs text-gray-500 mt-1">Log attendance and complete checklists</p>
+      </div>
+    </button>
+
+    <button onclick="promptPin()" class="w-full max-w-sm bg-white border border-gray-200 shadow-sm rounded-xl p-6 flex flex-col items-center gap-3 active:bg-gray-50 transition-colors">
+      <div class="p-3 bg-gray-50 rounded-full text-gray-700">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+      </div>
+      <div class="text-center">
+        <h2 class="text-lg font-bold text-gray-800">GDCP Auditor</h2>
+        <p class="text-xs text-gray-500 mt-1">Verify compliance and monitor deductions</p>
+      </div>
+    </button>
+  </div>
+
+  <!-- PIN Modal -->
+  <div id="pin-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-xs">
+      <h3 class="text-lg font-bold text-gray-800 mb-2">Auditor Access</h3>
+      <p class="text-xs text-gray-500 mb-4">Enter 4-digit PIN to access console.</p>
+      <input type="password" id="auditor-pin" maxlength="4" class="w-full text-center tracking-[1em] font-bold text-xl bg-gray-50 border border-gray-200 py-3 rounded-lg focus:outline-none focus:border-petronas mb-4" placeholder="••••">
+      <div class="flex gap-2">
+        <button onclick="document.getElementById('pin-modal').classList.add('hidden')" class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 rounded-lg">Cancel</button>
+        <button onclick="verifyPin()" class="flex-1 bg-petronas text-white font-semibold py-2 rounded-lg">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPERVISOR APP -->
+  <div id="view-supervisor" class="view-layer h-full flex flex-col pb-20">
+    <header class="bg-petronas text-white p-4 shadow-md sticky top-0 z-50 flex justify-between items-center">
+      <div>
+        <h1 class="text-lg font-bold tracking-wide">Supervisor Console</h1>
+        <p class="text-[10px] font-light opacity-90">Granversal Sdn Bhd</p>
+      </div>
+      <button onclick="logout()" class="text-xs font-semibold bg-white bg-opacity-20 px-3 py-1.5 rounded-lg">Exit</button>
+    </header>
+
+    <main class="p-4 flex-1">
+      <section id="sup-attendance" class="tab-content active space-y-4">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Daily Attendance</h2>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <label class="block text-sm font-medium text-gray-600 mb-1">Select Location</label>
+          <select id="att-location" class="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-3 rounded-lg mb-4" onchange="renderCleaners()">
+            <option value="Plant 1">Plant 1 (4 Personnel)</option>
+            <option value="Plant 2">Plant 2 & 4 (4 Personnel)</option>
+            <option value="Plant 3">Plant 3, PICC, WP (3 Personnel)</option>
+          </select>
+          <div id="cleaner-list" class="space-y-3"></div>
+          <button onclick="submitAttendance()" class="mt-6 w-full bg-petronas text-white font-semibold py-3 rounded-xl shadow">Submit Attendance</button>
+        </div>
+      </section>
+
+      <section id="sup-checklist" class="tab-content space-y-4">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">SLA Tasks</h2>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+          <label class="block text-sm font-medium text-gray-600 mb-1">Process Area Access (PTW)</label>
+          <div class="flex gap-2">
+            <input type="text" id="ptw-input" placeholder="e.g., PTW-1234" class="flex-1 bg-gray-50 border border-gray-200 text-sm py-2 px-3 rounded-lg">
+            <button onclick="unlockProcessAreas()" class="bg-gray-800 text-white text-xs font-semibold px-4 rounded-lg">Unlock</button>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <select id="chk-location" class="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2 px-2 rounded-lg text-sm mb-3">
+            <option value="Plant 1">Plant 1</option>
+            <option value="Plant 2">Plant 2</option>
+            <option value="Plant 3">Plant 3</option>
+            <option value="Plant 4">Plant 4</option>
+          </select>
+
+          <div class="space-y-2 mb-6">
+            <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <input type="checkbox" class="chk-task w-5 h-5 text-petronas rounded mt-0.5" value="Sweep, mop floors, empty waste bins, replenish toilet consumables">
+              <span class="text-sm text-gray-700"><span class="font-bold text-xs text-petronas uppercase mr-1">Daily</span> Sweep, mop floors, empty waste bins, replenish toilet consumables.</span>
+            </label>
+            <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <input type="checkbox" class="chk-task w-5 h-5 text-petronas rounded mt-0.5" value="Scrub toilets with disinfectant, damp wipe glass walls">
+              <span class="text-sm text-gray-700"><span class="font-bold text-xs text-petronas uppercase mr-1">Weekly</span> Scrub toilets with disinfectant, damp wipe glass walls/windows.</span>
+            </label>
+            <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 process-task opacity-50 pointer-events-none">
+              <input type="checkbox" class="chk-task w-5 h-5 text-petronas rounded mt-0.5" value="High-pressure water jet process area floors">
+              <span class="text-sm text-gray-700"><span class="font-bold text-xs text-gray-500 uppercase mr-1">Process Area</span> High-pressure water jet floors (Requires PTW).</span>
+            </label>
+            <label class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <input type="checkbox" class="chk-task w-5 h-5 text-petronas rounded mt-0.5" value="Polish stainless steel, clean A/C diffusers, wash waste bins">
+              <span class="text-sm text-gray-700"><span class="font-bold text-xs text-petronas uppercase mr-1">Monthly</span> Polish stainless steel, clean A/C diffusers, wash waste bins.</span>
+            </label>
+          </div>
+          <button onclick="submitChecklist()" class="w-full bg-petronas text-white font-semibold py-3 rounded-xl shadow">Submit Checked Tasks</button>
+        </div>
+      </section>
+
+      <section id="sup-issues" class="tab-content space-y-4">
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Report Issue</h2>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <select id="iss-location" class="w-full bg-gray-50 border border-gray-200 py-2 px-3 rounded-lg mb-3">
+            <option value="Plant 1">Plant 1</option>
+            <option value="Plant 2">Plant 2</option>
+            <option value="Plant 3">Plant 3</option>
+          </select>
+          <select id="iss-category" class="w-full bg-gray-50 border border-gray-200 py-2 px-3 rounded-lg mb-3">
+            <option value="Machine Breakdown">Equipment Breakdown</option>
+            <option value="Safety/Hazard">Safety Hazard</option>
+          </select>
+          <textarea id="iss-desc" rows="3" class="w-full bg-gray-50 border border-gray-200 py-2 px-3 rounded-lg mb-4" placeholder="Detail the issue..."></textarea>
+          <button onclick="submitIssue()" class="w-full bg-red-500 text-white font-semibold py-3 rounded-xl shadow">Log Issue</button>
+        </div>
+      </section>
+    </main>
+
+    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around py-3 pb-safe z-50">
+      <button onclick="switchTab('sup-attendance', 'sup')" class="nav-btn-sup text-petronas flex flex-col items-center w-1/3" data-target="sup-attendance">
+        <span class="text-xs font-semibold">Attendance</span>
+      </button>
+      <button onclick="switchTab('sup-checklist', 'sup')" class="nav-btn-sup text-gray-400 flex flex-col items-center w-1/3" data-target="sup-checklist">
+        <span class="text-xs font-semibold">Checklists</span>
+      </button>
+      <button onclick="switchTab('sup-issues', 'sup')" class="nav-btn-sup text-gray-400 flex flex-col items-center w-1/3" data-target="sup-issues">
+        <span class="text-xs font-semibold">Issues</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- AUDITOR APP -->
+  <div id="view-auditor" class="view-layer h-full flex flex-col pb-20 bg-gray-100">
+    <header class="bg-gray-800 text-white p-4 shadow-md sticky top-0 z-50 flex justify-between items-center">
+      <div>
+        <h1 class="text-lg font-bold tracking-wide text-petronas">Auditor Console</h1>
+        <p class="text-[10px] font-light opacity-90">GDCP Shift Leaders</p>
+      </div>
+      <button onclick="fetchAuditorData()" class="text-xs font-semibold bg-white bg-opacity-20 px-3 py-1.5 rounded-lg mr-2">Refresh</button>
+      <button onclick="logout()" class="text-xs font-semibold text-gray-400">Exit</button>
+    </header>
+
+    <main class="p-4 flex-1 space-y-4">
+      <div class="flex gap-3 overflow-x-auto pb-2 snap-x">
+        <div class="min-w-[140px] bg-white p-4 rounded-xl shadow-sm border border-gray-200 snap-start">
+          <p class="text-[10px] font-semibold text-gray-500 uppercase">Shortages</p>
+          <p class="text-2xl font-bold text-red-500" id="kpi-shortage">0</p>
+        </div>
+        <div class="min-w-[140px] bg-white p-4 rounded-xl shadow-sm border border-gray-200 snap-start">
+          <p class="text-[10px] font-semibold text-gray-500 uppercase">Est. Deductions</p>
+          <p class="text-2xl font-bold text-gray-800" id="kpi-deduction">RM 0</p>
+        </div>
+      </div>
+
+      <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wide mt-2">Recent Submissions</h2>
+      <div id="auditor-feed" class="space-y-3">
+        <p class="text-center text-sm text-gray-500 py-10">Fetching live data...</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRJZ4P5-bn1eNfXYFoRoyMOV3zKC4M9gH2_t0gtqtu8UwdRocV7A8yq8A0keOF2jsZ/exec';
+    const AUDITOR_PIN = '2026';
+
+    const cleanersDB = {
+      "Plant 1": ["Abu Bakar (Tea Lady)", "Ali Hassan", "Chong Wei", "Muthu"],
+      "Plant 2": ["Siti Nurhaliza (Tea Lady)", "Ahmad", "Raju", "Tan"],
+      "Plant 3": ["Fatimah (Tea Lady)", "Kamal", "Zainal"]
+    };
+
+    let currentPTW = "";
+
+    function launchApp(role) {
+      document.querySelectorAll('.view-layer').forEach(el => el.classList.remove('active'));
+      if(role === 'supervisor') {
+        document.getElementById('view-supervisor').classList.add('active');
+        renderCleaners();
+      } else if (role === 'auditor') {
+        document.getElementById('view-auditor').classList.add('active');
+        fetchAuditorData();
+      }
+    }
+
+    function logout() {
+      document.querySelectorAll('.view-layer').forEach(el => el.classList.remove('active'));
+      document.getElementById('view-role-select').classList.add('active');
+    }
+
+    function promptPin() {
+      document.getElementById('pin-modal').classList.remove('hidden');
+      document.getElementById('auditor-pin').value = '';
+    }
+
+    function verifyPin() {
+      const pin = document.getElementById('auditor-pin').value;
+      if(pin === AUDITOR_PIN) {
+        document.getElementById('pin-modal').classList.add('hidden');
+        launchApp('auditor');
+      } else {
+        alert("Incorrect PIN");
+      }
+    }
+
+    function switchTab(tabId, group) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      
+      document.querySelectorAll(`.nav-btn-${group}`).forEach(btn => {
+        if(btn.dataset.target === tabId) {
+          btn.classList.replace('text-gray-400', 'text-petronas');
+        } else {
+          btn.classList.replace('text-petronas', 'text-gray-400');
+        }
+      });
+    }
+
+    function renderCleaners() {
+      const loc = document.getElementById('att-location').value;
+      const listDiv = document.getElementById('cleaner-list');
+      listDiv.innerHTML = '';
+      cleanersDB[loc].forEach((name, index) => {
+        listDiv.innerHTML += `
+          <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-medium text-gray-700">${name}</span>
+              <label class="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" id="chk-${index}" checked onchange="toggleRep(${index})" class="w-5 h-5 text-petronas rounded">
+                Present
+              </label>
+            </div>
+            <input type="text" id="rep-${index}" placeholder="Replacement Name..." class="hidden mt-2 w-full bg-white border border-gray-200 text-sm py-1.5 px-3 rounded focus:outline-none focus:border-petronas">
+          </div>
+        `;
+      });
+    }
+    
+    function toggleRep(index) {
+      const isPresent = document.getElementById(`chk-${index}`).checked;
+      const repInput = document.getElementById(`rep-${index}`);
+      isPresent ? (repInput.classList.add('hidden'), repInput.value = "") : repInput.classList.remove('hidden');
+    }
+
+    function unlockProcessAreas() {
+      const ptw = document.getElementById('ptw-input').value.trim();
+      if(ptw.length > 3) {
+        currentPTW = ptw;
+        document.querySelectorAll('.process-task').forEach(el => {
+          el.classList.remove('opacity-50', 'pointer-events-none');
+        });
+        showToast("Process Areas Unlocked");
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    async function sendData(payload) {
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        showToast("Submitted Successfully");
+      } catch (err) { alert("Network error."); }
+    }
+
+    function submitAttendance() {
+      const loc = document.getElementById('att-location').value;
+      let records = [];
+      cleanersDB[loc].forEach((name, index) => {
+        records.push({
+          location: loc,
+          name: name,
+          status: document.getElementById(`chk-${index}`).checked ? "Present" : "Absent",
+          replacement: document.getElementById(`rep-${index}`).value
+        });
+      });
+      sendData({ action: 'logAttendance', date: new Date().toISOString().split('T')[0], submittedBy: 'Granversal Supervisor', records: records });
+    }
+
+    function submitChecklist() {
+      const loc = document.getElementById('chk-location').value;
+      const tasks = Array.from(document.querySelectorAll('.chk-task:checked')).map(el => el.value);
+      if(tasks.length === 0) return alert("Check at least one task.");
+      
+      sendData({
+        action: 'logChecklist',
+        location: loc,
+        ptwNumber: currentPTW,
+        taskCategory: currentPTW ? "Process Area Included" : "Common Area",
+        tasksCompleted: tasks,
+        completedBy: 'Granversal Supervisor'
+      });
+      document.querySelectorAll('.chk-task:checked').forEach(el => el.checked = false);
+    }
+
+    async function fetchAuditorData() {
+      const feed = document.getElementById('auditor-feed');
+      feed.innerHTML = '<p class="text-center text-sm text-gray-500 py-10 animate-pulse">Fetching live data...</p>';
+      
+      try {
+        const response = await fetch(`${SCRIPT_URL}?action=getDashboardData`);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          feed.innerHTML = '';
+          let shortageCount = 0;
+
+          result.attendance.forEach(row => {
+            if(row.Status === 'Absent' && (!row['Replacement Name'] || row['Replacement Name'] === 'N/A')) shortageCount++;
+            
+            const isAbsent = row.Status === 'Absent';
+            feed.innerHTML += `
+              <div class="bg-white p-4 rounded-xl border ${isAbsent ? 'border-red-200' : 'border-gray-200'} shadow-sm">
+                <div class="flex justify-between items-start mb-2">
+                  <div>
+                    <p class="text-xs text-gray-400 font-semibold">${new Date(row.Timestamp).toLocaleDateString()} • ${row.Location}</p>
+                    <p class="text-sm font-bold text-gray-800">${row['Cleaner Name']}</p>
+                  </div>
+                  <span class="px-2 py-1 rounded text-[10px] font-bold ${isAbsent ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">${row.Status}</span>
+                </div>
+                ${isAbsent ? `<p class="text-xs text-red-500 mt-1">Rep: ${row['Replacement Name']}</p>` : ''}
+                <button onclick="verifyItem(this)" class="mt-3 w-full bg-gray-50 hover:bg-gray-100 text-gray-600 text-xs font-semibold py-2 rounded border border-gray-200">Verify</button>
+              </div>
+            `;
+          });
+
+          document.getElementById('kpi-shortage').innerText = shortageCount;
+          document.getElementById('kpi-deduction').innerText = "RM " + (shortageCount * 61.53).toFixed(2);
+        }
+      } catch (error) {
+        feed.innerHTML = '<p class="text-center text-xs text-red-500 py-10">Network error. Please try again.</p>';
+      }
+    }
+
+    function verifyItem(btn) {
+      btn.innerText = "Verified";
+      btn.classList.replace('bg-gray-50', 'bg-green-50');
+      btn.classList.replace('text-gray-600', 'text-green-600');
+      btn.disabled = true;
+      showToast("Record Verified");
+    }
+  </script>
+</body>
+</html>
